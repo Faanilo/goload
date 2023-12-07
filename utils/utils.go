@@ -62,13 +62,11 @@ func WatchChange(fileToRun string, watcher *fsnotify.Watcher, wg *sync.WaitGroup
 }
 
 func RestartApp(file string) error {
-	os.Exit(0)
-	// Uncomment the lines below if you want to spawn a new process instead of exiting the current one
-	// runCmd := exec.Command("go", "run", file)
-	// runCmd.Stdout = os.Stdout
-	// runCmd.Stderr = os.Stderr
-	// return runCmd.Start()
-	return nil
+	// os.Exit(0)
+	runCmd := exec.Command("go", "run", file)
+	runCmd.Stdout = os.Stdout
+	runCmd.Stderr = os.Stderr
+	return runCmd.Start()
 }
 
 func StartServer(file string) error {
