@@ -10,13 +10,13 @@ import (
 )
 
 func main() {
-	fileToRun := utils.getFilePathFromArgs(os.Args)
+	fileToRun := utils.GetFilePathFromArgs(os.Args)
 	if fileToRun == "" {
 		fmt.Println("Please provide the path to the Go file to run.")
 		return
 	}
 
-	watcher, err := utils.setupWatcher(fileToRun)
+	watcher, err := utils.SetupWatcher(fileToRun)
 	if err != nil {
 		fmt.Println("Error setting up watcher:", err)
 		return
@@ -27,7 +27,7 @@ func main() {
 
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
-	go utils.WatchChanges(fileToRun, watcher, wg)
+	go utils.WatchChange(fileToRun, watcher, wg)
 
 	fmt.Println("Running", fileToRun)
 	if err := utils.StartServer(fileToRun); err != nil {

@@ -11,14 +11,14 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-func getFilePathFromArgs(args []string) string {
+func GetFilePathFromArgs(args []string) string {
 	if len(args) < 2 {
 		return ""
 	}
 	return args[1]
 }
 
-func setupWatcher(fileToRun string) (*fsnotify.Watcher, error) {
+func SetupWatcher(fileToRun string) (*fsnotify.Watcher, error) {
 	absPath, err := filepath.Abs(fileToRun)
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func setupWatcher(fileToRun string) (*fsnotify.Watcher, error) {
 	return watcher, nil
 }
 
-func watchChanges(fileToRun string, watcher *fsnotify.Watcher, wg *sync.WaitGroup) {
+func WatchChange(fileToRun string, watcher *fsnotify.Watcher, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for {
 		select {
@@ -48,7 +48,7 @@ func watchChanges(fileToRun string, watcher *fsnotify.Watcher, wg *sync.WaitGrou
 			if event.Op&fsnotify.Write == fsnotify.Write && strings.HasSuffix(event.Name, ".go") {
 				fmt.Println("Detected change in", event.Name)
 				fmt.Println("Restarting the application...")
-				if err := restartApp(fileToRun); err != nil {
+				if err := RestartApp(fileToRun); err != nil {
 					fmt.Println("Error restarting application:", err)
 				}
 			}
@@ -61,7 +61,7 @@ func watchChanges(fileToRun string, watcher *fsnotify.Watcher, wg *sync.WaitGrou
 	}
 }
 
-func restartApp(file string) error {
+func RestartApp(file string) error {
 	os.Exit(0)
 	// Uncomment the lines below if you want to spawn a new process instead of exiting the current one
 	// runCmd := exec.Command("go", "run", file)
@@ -71,7 +71,7 @@ func restartApp(file string) error {
 	return nil
 }
 
-func startServer(file string) error {
+func StartServer(file string) error {
 	runCmd := exec.Command("go", "run", file)
 	runCmd.Stdout = os.Stdout
 	runCmd.Stderr = os.Stderr
