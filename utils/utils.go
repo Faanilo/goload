@@ -61,17 +61,22 @@ func WatchChange(fileToRun string, watcher *fsnotify.Watcher, wg *sync.WaitGroup
 	}
 }
 
+func executeCommand(command string, args ...string) error {
+	cmd := exec.Command(command, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 func RestartApp(file string) error {
-	// os.Exit(0)
-	runCmd := exec.Command("go", "run", file)
-	runCmd.Stdout = os.Stdout
-	runCmd.Stderr = os.Stderr
-	return runCmd.Start()
+	// stop server before restarting
+	if err := executeCommand("pkill", "-f", filepath.Base(file)); err != nil {
+		fmt.Println("Error stopping the server:", err)
+	}
+
+	return executeCommand("go", "run", file)
 }
 
 func StartServer(file string) error {
-	runCmd := exec.Command("go", "run", file)
-	runCmd.Stdout = os.Stdout
-	runCmd.Stderr = os.Stderr
-	return runCmd.Run()
+	return executeCommand("go", "run", file)
 }
