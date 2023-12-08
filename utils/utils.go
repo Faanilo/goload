@@ -12,6 +12,7 @@ import (
 )
 
 var pauseWatcher = make(chan struct{})
+var resumeWatcher = make(chan struct{})
 
 func GetFilePathFromArgs(args []string) string {
 	if len(args) < 2 {
@@ -45,7 +46,7 @@ func WatchChange(fileToRun string, watcher *fsnotify.Watcher, wg *sync.WaitGroup
 		select {
 		case <-pauseWatcher:
 			// Pausing watcher
-			<-pauseWatcher // Wait for resume signal
+			<-resumeWatcher // Wait for resume signal
 		case event, ok := <-watcher.Events:
 			if !ok {
 				return
@@ -55,6 +56,9 @@ func WatchChange(fileToRun string, watcher *fsnotify.Watcher, wg *sync.WaitGroup
 				fmt.Println("Restarting the application...")
 				if err := RestartApp(fileToRun); err != nil {
 					fmt.Println("Error restarting application:", err)
+				} else {
+					fmt.Println("Application restarted successfully")
+					close(pauseWatcher) // Stop the watcher
 				}
 			}
 		case err, ok := <-watcher.Errors:
@@ -62,7 +66,6 @@ func WatchChange(fileToRun string, watcher *fsnotify.Watcher, wg *sync.WaitGroup
 				return
 			}
 			fmt.Println("Error watching:", err)
-			// Stop the server and pause watcher upon error
 			fmt.Println("Stopping the server...")
 			if err := StopServer(fileToRun); err != nil {
 				fmt.Println("Error stopping application:", err)
@@ -94,4 +97,8 @@ func StartServer(file string) error {
 }
 func StopServer(file string) error {
 	return executeCommand("pkill", "-f", filepath.Base(file))
+}
+
+func ResumeWatcher() {
+	close(resumeWatcher)
 }
