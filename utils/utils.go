@@ -11,6 +11,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+var pauseWatcher = make(chan struct{})
+
 func GetFilePathFromArgs(args []string) string {
 	if len(args) < 2 {
 		return ""
@@ -41,6 +43,9 @@ func WatchChange(fileToRun string, watcher *fsnotify.Watcher, wg *sync.WaitGroup
 	defer wg.Done()
 	for {
 		select {
+		case <-pauseWatcher:
+			// Pausing watcher
+			<-pauseWatcher // Wait for resume signal
 		case event, ok := <-watcher.Events:
 			if !ok {
 				return
@@ -57,6 +62,13 @@ func WatchChange(fileToRun string, watcher *fsnotify.Watcher, wg *sync.WaitGroup
 				return
 			}
 			fmt.Println("Error watching:", err)
+			// Stop the server and pause watcher upon error
+			fmt.Println("Stopping the server...")
+			if err := StopServer(fileToRun); err != nil {
+				fmt.Println("Error stopping application:", err)
+			}
+			close(pauseWatcher) // Stop the watcher
+			return
 		}
 	}
 }
@@ -79,4 +91,7 @@ func RestartApp(file string) error {
 
 func StartServer(file string) error {
 	return executeCommand("go", "run", file)
+}
+func StopServer(file string) error {
+	return executeCommand("pkill", "-f", filepath.Base(file))
 }
