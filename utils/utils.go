@@ -11,18 +11,18 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-var pauseWatcher = make(chan struct{})
-var resumeWatcher = make(chan struct{})
+var pauseSignal = make(chan struct{})
+var resumeSignal = make(chan struct{})
 
-func GetFilePathFromArgs(args []string) string {
+func GetTargetFilePath(args []string) string {
 	if len(args) < 2 {
 		return ""
 	}
 	return args[1]
 }
 
-func SetupWatcher(fileToRun string) (*fsnotify.Watcher, error) {
-	absPath, err := filepath.Abs(fileToRun)
+func InitializeWatcher(targetFile string) (*fsnotify.Watcher, error) {
+	absPath, err := filepath.Abs(targetFile)
 	if err != nil {
 		return nil, err
 	}
@@ -40,13 +40,13 @@ func SetupWatcher(fileToRun string) (*fsnotify.Watcher, error) {
 	return watcher, nil
 }
 
-func WatchChange(fileToRun string, watcher *fsnotify.Watcher, wg *sync.WaitGroup) {
+func MonitorChanges(targetFile string, watcher *fsnotify.Watcher, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for {
 		select {
-		case <-pauseWatcher:
+		case <-pauseSignal:
 			// Pausing watcher
-			<-resumeWatcher // Wait for resume signal
+			<-resumeSignal // Wait for resume signal
 		case event, ok := <-watcher.Events:
 			if !ok {
 				return
@@ -54,11 +54,11 @@ func WatchChange(fileToRun string, watcher *fsnotify.Watcher, wg *sync.WaitGroup
 			if event.Op&fsnotify.Write == fsnotify.Write && strings.HasSuffix(event.Name, ".go") {
 				fmt.Println("Detected change in", event.Name)
 				fmt.Println("Restarting the application...")
-				if err := RestartApp(fileToRun); err != nil {
+				if err := RestartApplication(targetFile); err != nil {
 					fmt.Println("Error restarting application:", err)
 				} else {
 					fmt.Println("Application restarted successfully")
-					close(pauseWatcher) // Stop the watcher
+					close(pauseSignal) // Stop the watcher
 				}
 			}
 		case err, ok := <-watcher.Errors:
@@ -67,10 +67,10 @@ func WatchChange(fileToRun string, watcher *fsnotify.Watcher, wg *sync.WaitGroup
 			}
 			fmt.Println("Error watching:", err)
 			fmt.Println("Stopping the server...")
-			if err := StopServer(fileToRun); err != nil {
+			if err := StopServerProcess(targetFile); err != nil {
 				fmt.Println("Error stopping application:", err)
 			}
-			close(pauseWatcher) // Stop the watcher
+			close(pauseSignal) // Stop the watcher
 			return
 		}
 	}
@@ -83,7 +83,7 @@ func executeCommand(command string, args ...string) error {
 	return cmd.Run()
 }
 
-func RestartApp(file string) error {
+func RestartApplication(file string) error {
 	// stop server before restarting
 	if err := executeCommand("pkill", "-f", filepath.Base(file)); err != nil {
 		fmt.Println("Error stopping the server:", err)
@@ -92,13 +92,13 @@ func RestartApp(file string) error {
 	return executeCommand("go", "run", file)
 }
 
-func StartServer(file string) error {
+func StartServerProcess(file string) error {
 	return executeCommand("go", "run", file)
 }
-func StopServer(file string) error {
+func StopServerProcess(file string) error {
 	return executeCommand("pkill", "-f", filepath.Base(file))
 }
 
 func ResumeWatcher() {
-	close(resumeWatcher)
+	close(resumeSignal)
 }
