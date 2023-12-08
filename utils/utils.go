@@ -45,8 +45,8 @@ func MonitorChanges(targetFile string, watcher *fsnotify.Watcher, wg *sync.WaitG
 	for {
 		select {
 		case <-pauseSignal:
-			// Pausing watcher
-			<-resumeSignal // Wait for resume signal
+
+			<-resumeSignal
 		case event, ok := <-watcher.Events:
 			if !ok {
 				return
@@ -58,7 +58,7 @@ func MonitorChanges(targetFile string, watcher *fsnotify.Watcher, wg *sync.WaitG
 					fmt.Println("Error restarting application:", err)
 				} else {
 					fmt.Println("Application restarted successfully")
-					close(pauseSignal) // Stop the watcher
+					close(pauseSignal)
 				}
 			}
 		case err, ok := <-watcher.Errors:
@@ -70,7 +70,7 @@ func MonitorChanges(targetFile string, watcher *fsnotify.Watcher, wg *sync.WaitG
 			if err := StopServerProcess(targetFile); err != nil {
 				fmt.Println("Error stopping application:", err)
 			}
-			close(pauseSignal) // Stop the watcher
+			close(pauseSignal)
 			return
 		}
 	}
