@@ -45,7 +45,6 @@ func MonitorChanges(targetFile string, watcher *fsnotify.Watcher, wg *sync.WaitG
 	for {
 		select {
 		case <-pauseSignal:
-
 			<-resumeSignal
 		case event, ok := <-watcher.Events:
 			if !ok {
@@ -84,7 +83,7 @@ func executeCommand(command string, args ...string) error {
 }
 
 func RestartApplication(file string) error {
-	// stop server before restarting
+	// Stop the server before restarting
 	if err := executeCommand("pkill", "-f", filepath.Base(file)); err != nil {
 		fmt.Println("Error stopping the server:", err)
 	}
@@ -95,6 +94,7 @@ func RestartApplication(file string) error {
 func StartServerProcess(file string) error {
 	return executeCommand("go", "run", file)
 }
+
 func StopServerProcess(file string) error {
 	return executeCommand("pkill", "-f", filepath.Base(file))
 }
